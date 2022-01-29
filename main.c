@@ -10,6 +10,8 @@
 struct todo_item {
     char *msg;
     int priority;
+    char file[256];
+    int line;
 };
 
 struct todo_node {
@@ -18,7 +20,6 @@ struct todo_node {
 };
 
 struct todo_node *head = NULL;
-struct todo_node *current = NULL;
 
 const char *bad_dirs[] = {".", "..", ".git", "objs"};
 
@@ -30,8 +31,33 @@ bool should_read_dir(char *path) {
     return true;
 }
 
+void insert_node(struct todo_node *node) {
+    if(!head) 
+        head = node;
+    else {
+        if(node->item.priority > head->item.priority) {
+            node->next = head;
+            head = node;
+        }
+        else {
+            struct todo_node *itr = head;
+            do {
+                if(itr->next == NULL) {
+                    itr->next = node;
+                    break;
+                }
+                else if(node->item.priority > itr->next->item.priority) {
+                    node->next = itr->next;
+                    itr->next = node;
+                    break;
+                }
+                itr = itr->next;
+            } while(itr);
+        }
+    }
+}
+
 void search_file(char *path) {
-    printf("Reading: %s\n", path);
     FILE *fp;
     char *line = NULL;
     size_t len = 0;
@@ -44,22 +70,27 @@ void search_file(char *path) {
     while((read = getline(&line, &len, fp)) && read >= 0) {
         line_count++;
         if(strstr(line, "TODO")) {
-            printf("Line contains todo: %s", line);
             struct todo_node *node = malloc(sizeof(struct todo_node));
             node->item.msg = malloc(sizeof(char) * len);
             strncpy(node->item.msg, line, len);
-            // TODO figure out a way to caluclate priority based on some index maybe number of Os
-            node->item.priority = 1;
-            node->next = NULL;
-            if(!current) {
-                current = node;
-            } else {
-                current->next = node;
-                current = current->next;
-            } 
-            if(!head) {
-                head = current;
+            char *split = strtok(line, " ");
+            while(split) {
+                char *ptr = strstr(split, "TODO");
+                if(ptr) {
+                    int prio = 0;
+                    ptr += 3;
+                    while(*ptr == 'O') {
+                        prio++;
+                        ptr++;
+                    }
+                    node->item.priority = prio;
+                }
+                split = strtok(NULL, " ");
             }
+            strcpy(node->item.file, path);
+            node->item.line = line_count;
+            node->next = NULL;
+            insert_node(node); 
         }
     }
     fclose(fp);
@@ -97,7 +128,7 @@ int read_dir(char *path) {
 void print_list() {
     struct todo_node *itr = head;
     while(itr) {
-        printf("%s\n", itr->item.msg);
+        printf("TODO %d at %s:%d\n%s", itr->item.priority, itr->item.file, itr->item.line, itr->item.msg);
         itr = itr->next;
     }
 }
