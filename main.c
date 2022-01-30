@@ -6,6 +6,7 @@
 #include "string.h"
 #include <dirent.h>
 #include <sys/stat.h>
+#include <ncurses.h>
 
 struct todo_item {
     char *msg;
@@ -98,7 +99,6 @@ void search_file(char *path) {
 }
 
 int read_dir(char *path) {
-    printf("Reading dir: %s\n", path);
     DIR *dir;
     struct dirent *entry;
     struct stat file_stat;
@@ -128,13 +128,19 @@ int read_dir(char *path) {
 void print_list() {
     struct todo_node *itr = head;
     while(itr) {
-        printf("TODO %d at %s:%d\n%s", itr->item.priority, itr->item.file, itr->item.line, itr->item.msg);
+        printw("TODO %d at %s:%d\n%s",itr->item.priority, itr->item.file, itr->item.line, itr->item.msg);
         itr = itr->next;
     }
+    refresh();
 }
 
 int main(void) {
+    initscr();
+    addstr("DOTO\n");
+    refresh();
     read_dir(".");
     print_list();
-    return 0;
+    getch();
+    endwin();
+    return EXIT_SUCCESS;
 }
