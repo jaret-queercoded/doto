@@ -72,8 +72,16 @@ void search_file(char *path) {
         line_count++;
         if(strstr(line, "TODO")) {
             struct todo_node *node = malloc(sizeof(struct todo_node));
+            //Strip leading whitespace from todo
+            int whitespace_count = 0;
+            char *whitespace_itr = line;
+            while(*whitespace_itr == ' ') {
+                whitespace_itr++;
+                whitespace_count++;
+            }
+            len -= whitespace_count;
             node->item.msg = malloc(sizeof(char) * len);
-            strncpy(node->item.msg, line, len);
+            strncpy(node->item.msg, whitespace_itr, len);
             char *split = strtok(line, " ");
             while(split) {
                 char *ptr = strstr(split, "TODO");
